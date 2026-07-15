@@ -1,11 +1,41 @@
-# companion-module-[replace with module name]
+# companion-module-videopeople-podcastpilot
 
-See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
+[Bitfocus Companion](https://bitfocus.io/companion) connection module for
+[PodcastPilot](https://podcastpilot.app), the multicam podcast recording app
+for Mac (SDI via Blackmagic DeckLink, NDI® and USB sources, fully synced
+timelines for Premiere Pro, DaVinci Resolve and Final Cut Pro).
 
-## Getting started
+Talks to PodcastPilot's local WebSocket control API (PodcastPilot 0.9.50+,
+Settings → Remote). See [companion/HELP.md](companion/HELP.md) for setup and
+usage, including Stream Deck + dial recipes for volume control.
 
-Executing a `yarn` command should perform all necessary steps to develop the module, if it does not then follow the steps below.
+## Features
 
-The module can be built once with `yarn build`. This should be enough to get the module to be loadable by companion.
+- **Actions:** cut/fade to source, record start/stop/toggle, predefined
+  markers, frame-accurate sync slate, track volume (absolute dB + rotary
+  delta), mute/solo, monitor volume, default transition
+- **Feedbacks:** program tally, recording active, track muted/soloed,
+  source signal lost
+- **Variables:** timecode, elapsed, dropped frames, session name, program
+  source, source/track names and gains, optional per-track levels (dBFS)
+- **Presets:** ready-made pages for switching, recording, markers and audio,
+  automatically labeled with the source/track/marker names from the app
 
-While developing the module, by using `yarn dev` the compiler will be run in watch mode to recompile the files on change.
+## Development
+
+```bash
+corepack yarn install
+corepack yarn dev       # tsc watch
+corepack yarn package   # build store package (tgz)
+```
+
+Point Companion's developer modules path at a folder containing this repo
+(no symlinks — Companion sandboxes modules with Node's permission model).
+
+Protocol documentation for the control API is available on request:
+kontakt@videopeople.dk. Protocol changes stay backwards compatible within
+protocol v1.
+
+## License
+
+MIT © Video People ApS
