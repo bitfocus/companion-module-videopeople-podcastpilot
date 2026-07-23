@@ -6,6 +6,7 @@ type Index = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 export type VariablesSchema = {
 	recording: boolean
 	timecode: string
+	rec_time: string
 	elapsed: number
 	dropped_frames: number
 	session_name: string
@@ -21,6 +22,8 @@ export type VariablesSchema = {
 	[K in `track_${Index}_gain`]: number
 } & {
 	[K in `track_${Index}_level`]: number
+} & {
+	[K in `marker_${Index}_name`]: string
 }
 
 const INDICES: Index[] = [1, 2, 3, 4, 5, 6, 7, 8]
@@ -29,6 +32,7 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 	const definitions = {
 		recording: { name: 'Recording active' },
 		timecode: { name: 'Elapsed timecode (HH:MM:SS:FF)' },
+		rec_time: { name: 'Recording time (HH:MM:SS)' },
 		elapsed: { name: 'Elapsed seconds' },
 		dropped_frames: { name: 'Dropped frames' },
 		session_name: { name: 'Session name' },
@@ -42,6 +46,7 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		definitions[`track_${index}_name`] = { name: `Track ${index} name` }
 		definitions[`track_${index}_gain`] = { name: `Track ${index} gain (dB)` }
 		definitions[`track_${index}_level`] = { name: `Track ${index} level (dBFS, needs levels enabled)` }
+		definitions[`marker_${index}_name`] = { name: `Marker ${index} name` }
 	}
 	self.setVariableDefinitions(definitions as Parameters<typeof self.setVariableDefinitions>[0])
 }
@@ -62,6 +67,7 @@ export function UpdateVariableValues(self: ModuleInstance): void {
 		const track = status.tracks.find((t) => t.index === index)
 		values[`track_${index}_name`] = track?.name ?? ''
 		values[`track_${index}_gain`] = track?.gainDb ?? 0
+		values[`marker_${index}_name`] = status.markers.find((m) => m.index === index)?.name ?? ''
 	}
 	self.setVariableValues(values)
 }
@@ -69,6 +75,8 @@ export function UpdateVariableValues(self: ModuleInstance): void {
 export function UpdateTickValues(self: ModuleInstance, tick: TickEvent): void {
 	self.setVariableValues({
 		timecode: tick.timecode,
+		// Uden frames: tick kommer 1x/sekund, så FF ville alligevel stå stille.
+		rec_time: tick.timecode.split(':').slice(0, 3).join(':'),
 		elapsed: tick.elapsed,
 		dropped_frames: tick.droppedFrames,
 	})

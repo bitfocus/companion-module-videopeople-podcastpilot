@@ -20,10 +20,13 @@ export function UpdatePresets(self: ModuleInstance): void {
 	const fadePresets: string[] = []
 	for (let index = 1; index <= Math.min(sourceCount, 8); index++) {
 		const name = self.state.sources.find((s) => s.index === index)?.name ?? `Source ${index}`
+		// Knapteksten er en VARIABEL-reference, ikke navnet selv: knapper der
+		// allerede ligger på en surface følger med når kilder omdøbes/ændres.
+		const nameVar = `$(${self.label}:source_${index}_name)`
 		presets[`cut_${index}`] = {
 			type: 'simple',
 			name: `Cut to ${name}`,
-			style: { text: name, size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
+			style: { text: nameVar, size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
 			steps: [{ down: [{ actionId: 'cut', options: { source: index } }], up: [] }],
 			feedbacks: [
 				{
@@ -37,7 +40,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 		presets[`fade_${index}`] = {
 			type: 'simple',
 			name: `Fade to ${name}`,
-			style: { text: `FADE\\n${name}`, size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
+			style: { text: `FADE\\n${nameVar}`, size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
 			steps: [{ down: [{ actionId: 'fade', options: { source: index } }], up: [] }],
 			feedbacks: [
 				{
@@ -65,8 +68,14 @@ export function UpdatePresets(self: ModuleInstance): void {
 	}
 	presets['timecode'] = {
 		type: 'simple',
-		name: 'Timecode display',
-		style: { text: 'TC\\n$(podcastpilot:timecode)', size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
+		name: 'Recording time display',
+		style: {
+			text: `REC TIME\\n$(${self.label}:rec_time)`,
+			size: 'auto',
+			color: WHITE,
+			bgcolor: DARK,
+			show_topbar: false,
+		},
 		steps: [],
 		feedbacks: [
 			{
@@ -86,12 +95,13 @@ export function UpdatePresets(self: ModuleInstance): void {
 
 	const markerPresets: string[] = []
 	const markerCount = Math.max(self.state.markers.length, 4)
-	for (let index = 1; index <= Math.min(markerCount, 9); index++) {
+	for (let index = 1; index <= Math.min(markerCount, 8); index++) {
 		const name = self.state.markers.find((m) => m.index === index)?.name ?? `Marker ${index}`
+		const nameVar = `$(${self.label}:marker_${index}_name)`
 		presets[`marker_${index}`] = {
 			type: 'simple',
 			name: `Marker: ${name}`,
-			style: { text: name, size: 'auto', color: BLACK, bgcolor: combineRgb(255, 221, 0), show_topbar: false },
+			style: { text: nameVar, size: 'auto', color: BLACK, bgcolor: combineRgb(255, 221, 0), show_topbar: false },
 			steps: [{ down: [{ actionId: 'marker', options: { index } }], up: [] }],
 			feedbacks: [],
 		}
@@ -102,10 +112,11 @@ export function UpdatePresets(self: ModuleInstance): void {
 	const trackCount = Math.max(self.state.tracks.length, 4)
 	for (let index = 1; index <= Math.min(trackCount, 8); index++) {
 		const name = self.state.tracks.find((t) => t.index === index)?.name ?? `Track ${index}`
+		const nameVar = `$(${self.label}:track_${index}_name)`
 		presets[`mute_${index}`] = {
 			type: 'simple',
 			name: `Mute ${name}`,
-			style: { text: `MUTE\\n${name}`, size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
+			style: { text: `MUTE\\n${nameVar}`, size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
 			steps: [{ down: [{ actionId: 'mute', options: { track: index, op: 'toggle' } }], up: [] }],
 			feedbacks: [
 				{
@@ -116,6 +127,36 @@ export function UpdatePresets(self: ModuleInstance): void {
 			],
 		}
 		mutePresets.push(`mute_${index}`)
+	}
+
+	// Stream Deck + / drejeknapper: tryk = mute, drej = volumen. Navn og
+	// aktuel gain vises live via variabler.
+	const dialPresets: string[] = []
+	for (let index = 1; index <= Math.min(trackCount, 8); index++) {
+		const name = self.state.tracks.find((t) => t.index === index)?.name ?? `Track ${index}`
+		const nameVar = `$(${self.label}:track_${index}_name)`
+		const gainVar = `$(${self.label}:track_${index}_gain)`
+		presets[`dial_${index}`] = {
+			type: 'simple',
+			name: `Dial: ${name} (press = mute, rotate = volume)`,
+			style: { text: `${nameVar}\n${gainVar} dB`, size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
+			steps: [
+				{
+					down: [{ actionId: 'mute', options: { track: index, op: 'toggle' } }],
+					up: [],
+					rotate_left: [{ actionId: 'volume_delta', options: { track: index, delta: -1 } }],
+					rotate_right: [{ actionId: 'volume_delta', options: { track: index, delta: 1 } }],
+				},
+			],
+			feedbacks: [
+				{
+					feedbackId: 'track_muted',
+					options: { track: index },
+					style: { bgcolor: combineRgb(255, 170, 0), color: BLACK },
+				},
+			],
+		}
+		dialPresets.push(`dial_${index}`)
 	}
 
 	const structure: CompanionPresetSection[] = [
@@ -145,8 +186,8 @@ export function UpdatePresets(self: ModuleInstance): void {
 			definitions: [
 				{
 					id: 'rec',
-					name: 'Record & timecode',
-					description: 'REC toggle and a live timecode display',
+					name: 'Record & time',
+					description: 'REC toggle and a live recording-time display',
 					type: 'simple',
 					presets: ['record_toggle', 'timecode', 'sync_slate'],
 				},
@@ -172,10 +213,17 @@ export function UpdatePresets(self: ModuleInstance): void {
 				{
 					id: 'mutes',
 					name: 'Track mutes',
-					description:
-						'Toggle mute per track. For volume on Stream Deck + dials, bind the "Track volume: adjust" action to rotate left/right',
+					description: 'Toggle mute per track',
 					type: 'simple',
 					presets: mutePresets,
+				},
+				{
+					id: 'dials',
+					name: 'Mute + volume dials',
+					description:
+						'For Stream Deck + dials: press toggles mute, rotating adjusts the track volume ±1 dB. Shows name and current gain',
+					type: 'simple',
+					presets: dialPresets,
 				},
 			],
 		},

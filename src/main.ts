@@ -132,6 +132,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 
 		ws.onclose = () => {
 			if (this.destroyed) return
+			this.log('debug', 'Socket closed – reconnecting in 2 s')
 			this.updateStatus(
 				InstanceStatus.Disconnected,
 				'Connection closed – is PodcastPilot running with the control API enabled?',
@@ -140,7 +141,9 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		}
 		ws.onerror = () => {
 			if (this.destroyed) return
+			this.log('debug', `Socket error (${url})`)
 			this.updateStatus(InstanceStatus.ConnectionFailure, `Cannot reach ${url}`)
+			this.scheduleReconnect()
 		}
 	}
 
