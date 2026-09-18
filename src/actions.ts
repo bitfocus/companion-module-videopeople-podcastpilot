@@ -13,6 +13,9 @@ export type ActionsSchema = {
 	solo: { options: { track: number; op: string } }
 	monitor_volume_delta: { options: { delta: number } }
 	transition: { options: { style: string } }
+	sound_play: { options: { sound: string } }
+	sound_toggle: { options: { sound: string } }
+	sound_stop: { options: Record<string, never> }
 }
 
 function sourceChoices(self: ModuleInstance): DropdownChoice[] {
@@ -36,7 +39,32 @@ function markerChoices(self: ModuleInstance): DropdownChoice[] {
 	return [1, 2, 3, 4].map((index) => ({ id: index, label: `Marker ${index}` }))
 }
 
+// Lyde vælges på LISTEPOSITION: en knap er "plads 2", så en
+// sletning rykker listen op og knappen følger bare pladsen i stedet for at
+// dø med et forældreløst id. Navnet i etiketten er kun til orientering.
+// Værdien er pladsnummeret som streng; et gemt UUID fra 1.2.0 accepteres
+// stadig i callbacks (id-binding), så eksisterende knapper overlever.
+function soundChoices(self: ModuleInstance): DropdownChoice[] {
+	const sounds = self.state.soundboard?.sounds ?? []
+	const slots = Math.max(sounds.length, 8)
+	const choices: DropdownChoice[] = []
+	for (let slot = 1; slot <= slots; slot++) {
+		const sound = sounds.find((s) => s.index === slot)
+		choices.push({ id: String(slot), label: sound ? `Sound ${slot}: ${sound.name}` : `Sound ${slot}: (empty)` })
+	}
+	return choices
+}
+
+// Plads ("2") giver { index }, et gammelt UUID giver { sound } (fast id).
+export function soundArgument(value: unknown): { index?: number; sound?: string } | null {
+	const raw = String(value ?? '')
+	if (!raw) return null
+	if (/^\d+$/.test(raw)) return { index: Number(raw) }
+	return { sound: raw }
+}
+
 export function UpdateActions(self: ModuleInstance): void {
+	const sounds = soundChoices(self)
 	self.setActionDefinitions({
 		cut: {
 			name: 'Cut to source',
@@ -178,6 +206,37 @@ export function UpdateActions(self: ModuleInstance): void {
 			],
 			callback: async (event) => {
 				self.sendCommand({ command: 'transition', style: String(event.options.style) })
+			},
+		},
+		sound_play: {
+			name: 'Sound: play',
+			options: [{ id: 'sound', type: 'dropdown', label: 'Sound', choices: sounds, default: sounds[0].id }],
+			callback: async (event) => {
+				const arg = soundArgument(event.options.sound)
+				if (!arg) {
+					self.log('warn', 'No sound selected – pick a slot in the action')
+					return
+				}
+				self.sendCommand({ command: 'soundPlay', ...arg })
+			},
+		},
+		sound_toggle: {
+			name: 'Sound: toggle (play / fade out)',
+			options: [{ id: 'sound', type: 'dropdown', label: 'Sound', choices: sounds, default: sounds[0].id }],
+			callback: async (event) => {
+				const arg = soundArgument(event.options.sound)
+				if (!arg) {
+					self.log('warn', 'No sound selected – pick a slot in the action')
+					return
+				}
+				self.sendCommand({ command: 'soundToggle', ...arg })
+			},
+		},
+		sound_stop: {
+			name: 'Sound: stop (fade out)',
+			options: [],
+			callback: async () => {
+				self.sendCommand({ command: 'soundStop' })
 			},
 		},
 	})

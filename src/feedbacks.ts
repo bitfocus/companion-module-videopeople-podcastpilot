@@ -7,6 +7,7 @@ export type FeedbacksSchema = {
 	track_muted: { type: 'boolean'; options: { track: number } }
 	track_solo: { type: 'boolean'; options: { track: number } }
 	source_no_signal: { type: 'boolean'; options: { source: number } }
+	sound_playing: { type: 'boolean'; options: { sound: string } }
 }
 
 function sourceChoices(self: ModuleInstance): DropdownChoice[] {
@@ -23,7 +24,23 @@ function trackChoices(self: ModuleInstance): DropdownChoice[] {
 	return [1, 2, 3, 4, 5, 6, 7, 8].map((index) => ({ id: index, label: `Track ${index}` }))
 }
 
+// Lyde vælges på LISTEPOSITION som i actions.ts: feedbacken
+// hører til "plads 2", og navnet på knappen kommer af sound_2_name-variablen,
+// så en sletning bare rykker listen op uden at knappen dør. Gemte UUID'er
+// fra 1.2.0 matches stadig på id i callbacken.
+function soundChoices(self: ModuleInstance): DropdownChoice[] {
+	const sounds = self.state.soundboard?.sounds ?? []
+	const slots = Math.max(sounds.length, 8)
+	const choices: DropdownChoice[] = []
+	for (let slot = 1; slot <= slots; slot++) {
+		const sound = sounds.find((s) => s.index === slot)
+		choices.push({ id: String(slot), label: sound ? `Sound ${slot}: ${sound.name}` : `Sound ${slot}: (empty)` })
+	}
+	return choices
+}
+
 export function UpdateFeedbacks(self: ModuleInstance): void {
+	const sounds = soundChoices(self)
 	self.setFeedbackDefinitions({
 		on_program: {
 			name: 'Source is on program',
@@ -85,6 +102,22 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 			callback: (feedback) => {
 				const source = self.state.sources.find((s) => s.index === Number(feedback.options.source))
 				return source !== undefined && !source.hasSignal
+			},
+		},
+		sound_playing: {
+			name: 'Sound is playing',
+			type: 'boolean',
+			defaultStyle: {
+				bgcolor: combineRgb(0, 153, 68),
+				color: combineRgb(255, 255, 255),
+			},
+			options: [{ id: 'sound', type: 'dropdown', label: 'Sound', choices: sounds, default: sounds[0].id }],
+			callback: (feedback) => {
+				const playing = self.state.soundboard?.playing
+				if (playing == null) return false
+				const raw = String(feedback.options.sound ?? '')
+				if (/^\d+$/.test(raw)) return playing.index === Number(raw)
+				return playing.id === raw
 			},
 		},
 	})

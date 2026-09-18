@@ -26,6 +26,22 @@ export type MarkerInfo = {
 	color: string
 }
 
+export type SoundInfo = {
+	index: number
+	id: string // stabilt UUID; knapper binder til id, ikke listeposition
+	name: string
+	loop: boolean
+	gainDb: number
+	durationSeconds: number
+	available: boolean
+}
+
+export type SoundboardInfo = {
+	track: number
+	sounds: SoundInfo[]
+	playing: { id: string; index: number; name: string } | null
+}
+
 export type StatusEvent = {
 	event: 'status'
 	recording: boolean
@@ -35,6 +51,8 @@ export type StatusEvent = {
 	sources: SourceInfo[]
 	tracks: TrackInfo[]
 	markers: MarkerInfo[]
+	// Udeladt af ældre app-versioner og når intet soundboard-spor findes.
+	soundboard?: SoundboardInfo
 }
 
 export type TickEvent = {
@@ -42,6 +60,16 @@ export type TickEvent = {
 	elapsed: number
 	timecode: string
 	droppedFrames: number
+}
+
+export type SoundTickEvent = {
+	event: 'soundTick'
+	id: string
+	index: number
+	elapsed: number
+	remaining: number
+	duration: number
+	loop: boolean
 }
 
 export type LevelsEvent = {
@@ -56,7 +84,7 @@ export type HelloEvent = {
 	protocol: number
 }
 
-export type ServerEvent = StatusEvent | TickEvent | LevelsEvent | HelloEvent
+export type ServerEvent = StatusEvent | TickEvent | SoundTickEvent | LevelsEvent | HelloEvent
 
 export type CommandReply = { ok: boolean; command: string; error?: string }
 

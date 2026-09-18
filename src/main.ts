@@ -4,6 +4,7 @@ import {
 	UpdateVariableDefinitions,
 	UpdateVariableValues,
 	UpdateTickValues,
+	UpdateSoundTickValues,
 	UpdateLevelValues,
 	type VariablesSchema,
 } from './variables.js'
@@ -41,8 +42,8 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	private ws: WSLike | null = null
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null
 	private destroyed = false
-	/// Struktur-nøgle (kilde/spor/markør-navne): ændres den, skal
-	/// actions/feedbacks/presets genudstilles med friske dropdowns.
+	/// Struktur-nøgle (kilde/spor/markør-navne + soundboard-lyde): ændres den,
+	/// skal actions/feedbacks/presets genudstilles med friske dropdowns.
 	private structureKey = ''
 
 	constructor(internal: unknown) {
@@ -170,6 +171,9 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 					msg.sources.map((s) => s.name),
 					msg.tracks.map((t) => t.name),
 					msg.markers.map((m) => m.name),
+					// id OG navn: omdøbning skal give friske dropdown-labels,
+					// selv om id'erne (og dermed knap-bindingerne) står fast.
+					(msg.soundboard?.sounds ?? []).map((s) => [s.id, s.name]),
 				])
 				if (key !== this.structureKey) {
 					this.structureKey = key
@@ -178,11 +182,14 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 					this.updatePresets()
 				}
 				UpdateVariableValues(this)
-				this.checkFeedbacks('on_program', 'recording', 'track_muted', 'track_solo', 'source_no_signal')
+				this.checkFeedbacks('on_program', 'recording', 'track_muted', 'track_solo', 'source_no_signal', 'sound_playing')
 				break
 			}
 			case 'tick':
 				UpdateTickValues(this, msg)
+				break
+			case 'soundTick':
+				UpdateSoundTickValues(this, msg)
 				break
 			case 'levels':
 				UpdateLevelValues(this, msg)

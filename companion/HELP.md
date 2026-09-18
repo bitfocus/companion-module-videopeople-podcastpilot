@@ -19,18 +19,20 @@ Requires PodcastPilot 0.9.50 or later.
 
 **Actions:** cut/fade to source, record start/stop/toggle, drop any of your
 predefined markers, fire the frame-accurate sync slate, set or nudge track
-volume (dB), mute/solo, monitor volume, default transition.
+volume (dB), mute/solo, monitor volume, default transition, soundboard
+play/toggle/stop.
 
 **Feedbacks:** source on program (tally), recording active, track muted/soloed,
-source signal lost.
+source signal lost, sound playing.
 
 **Variables:** timecode, elapsed, dropped frames, session name, program source,
-source/track names and gains — plus per-track levels (dBFS) if you enable
-"Track levels as variables".
+source/track names and gains, sound names, the playing sound and its remaining
+time — plus per-track levels (dBFS) if you enable "Track levels as variables".
 
 **Presets:** ready-made pages for switching (with red program tally), recording
-(REC toggle + live timecode), markers and track mutes. Source, track and marker
-buttons automatically pick up the names you set in PodcastPilot.
+(REC toggle + live timecode), markers, track mutes and the soundboard. Source,
+track, marker and sound buttons automatically pick up the names you set in
+PodcastPilot.
 
 ## Stream Deck + dials (volume control)
 
@@ -42,6 +44,22 @@ Create a button on a dial position and bind:
 
 Use `$(podcastpilot:track_1_name)` and `$(podcastpilot:track_1_gain)` in the
 button text to show the track name and current gain.
+
+## Soundboard
+
+Needs a PodcastPilot version with the soundboard and a soundboard track in the
+session. Against older versions everything else keeps working: the sound
+variables stay empty and soundboard actions are rejected by the app (check the
+Companion log).
+
+- Buttons bind to the sound itself, not its position in the list: reorder or
+  rename sounds in PodcastPilot and your buttons keep firing the right one.
+- The ready-made presets use `Sound: toggle`: press plays the sound (taking
+  over from whatever else is playing), press again fades it out. The button
+  lights up green while the sound plays.
+- Use `$(podcastpilot:sound_playing_name)` and
+  `$(podcastpilot:sound_playing_remaining)` on a display button to show what
+  is playing and how long is left (MM:SS, empty when nothing plays).
 
 ## Notes
 

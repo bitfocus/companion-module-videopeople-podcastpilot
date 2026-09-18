@@ -6,6 +6,7 @@ const WHITE = combineRgb(255, 255, 255)
 const BLACK = combineRgb(0, 0, 0)
 const DARK = combineRgb(17, 17, 17)
 const RED = combineRgb(201, 64, 63)
+const GREEN = combineRgb(0, 153, 68)
 
 /**
  * Færdige knapper: en integrator trækker en hel side på plads på minutter.
@@ -159,6 +160,29 @@ export function UpdatePresets(self: ModuleInstance): void {
 		dialPresets.push(`dial_${index}`)
 	}
 
+	// Soundboard: knap pr. PLADS: knappen er "plads N", teksten
+	// er sound_N_name-variablen og feedbacken matcher pladsen, så listen kan
+	// redigeres frit uden at knapper dør; en sletning rykker bare navnene op.
+	// Uden soundboard-spor (ældre app) udelades sektionen helt.
+	const soundPresets: string[] = []
+	for (const sound of (self.state.soundboard?.sounds ?? []).slice(0, 8)) {
+		const nameVar = `$(${self.label}:sound_${sound.index}_name)`
+		presets[`sound_${sound.index}`] = {
+			type: 'simple',
+			name: `Sound ${sound.index}`,
+			style: { text: nameVar, size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
+			steps: [{ down: [{ actionId: 'sound_toggle', options: { sound: String(sound.index) } }], up: [] }],
+			feedbacks: [
+				{
+					feedbackId: 'sound_playing',
+					options: { sound: String(sound.index) },
+					style: { bgcolor: GREEN, color: WHITE },
+				},
+			],
+		}
+		soundPresets.push(`sound_${sound.index}`)
+	}
+
 	const structure: CompanionPresetSection[] = [
 		{
 			id: 'switching',
@@ -228,6 +252,22 @@ export function UpdatePresets(self: ModuleInstance): void {
 			],
 		},
 	]
+
+	if (soundPresets.length > 0) {
+		structure.push({
+			id: 'soundboard',
+			name: 'Soundboard',
+			definitions: [
+				{
+					id: 'sounds',
+					name: 'Sounds',
+					description: 'Press plays the sound, press again fades it out. Lights up green while playing',
+					type: 'simple',
+					presets: soundPresets,
+				},
+			],
+		})
+	}
 
 	self.setPresetDefinitions(structure, presets)
 }
