@@ -57,7 +57,7 @@ function soundChoices(self: ModuleInstance): DropdownChoice[] {
 
 // Plads ("2") giver { index }, et gammelt UUID giver { sound } (fast id).
 export function soundArgument(value: unknown): { index?: number; sound?: string } | null {
-	const raw = String(value ?? '')
+	const raw = typeof value === 'string' ? value : typeof value === 'number' ? String(value) : ''
 	if (!raw) return null
 	if (/^\d+$/.test(raw)) return { index: Number(raw) }
 	return { sound: raw }
